@@ -42,6 +42,7 @@ pub fn start_game_loop(
             Ok(msg) => {
                 if let Some(radar_view) = msg.get("RadarView") {
                     let encoded_view = radar_view.as_str().unwrap_or("");
+                    println!("RadarView: {}", encoded_view);
                     match decode_b64(encoded_view) {
                         Ok(decoded_data) => {
                             println!("[{}] Decoded RadarView data: {}", player_name, decoded_data);

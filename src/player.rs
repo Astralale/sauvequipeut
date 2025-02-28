@@ -142,13 +142,13 @@ pub enum RegisterTeamResult {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SubscribePlayer {
-    SubscribePlayer: SubscribePlayerBody,
+    pub SubscribePlayer: SubscribePlayerBody,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SubscribePlayerBody {
-    name: String,
-    registration_token: String,
+    pub name: String,
+    pub registration_token: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
