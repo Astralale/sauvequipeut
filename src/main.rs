@@ -272,7 +272,7 @@ fn move_player(player_state: &mut PlayerState, movement: &str) {
 
 // Simule une boucle de jeu persistante après l'inscription des joueurs
 fn main() -> Result<(), String> {
-    let server_address = "127.0.0.1:8778";
+    let server_address = "127.0.0.1:3000";
     let team_name = "team_example";
     println!("Connecting to server at {}...", server_address);
 
