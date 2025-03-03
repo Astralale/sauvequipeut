@@ -41,69 +41,65 @@ pub fn start_game_loop(
         match response {
             Ok(msg) => {
                 if let Some(radar_view) = msg.get("RadarView") {
-                    let encoded_view = radar_view.as_str().unwrap_or("");
-                    println!("RadarView: {}", encoded_view);
-                    match decode_b64(encoded_view) {
-                        Ok(decoded_data) => {
-                            println!("[{}] Decoded RadarView data: {}", player_name, decoded_data);
+                    if let Some(encoded_view) = radar_view.as_str() {
+                        println!("RadarView: {}", encoded_view);
+                        match decode_b64(encoded_view) {
+                            Ok(decoded_data) => {
+                                println!("[{}] Decoded RadarView data: {}", player_name, decoded_data);
 
-                            let (horizontal, vertical, cells) = process_blocks(&decoded_data);
+                                let (horizontal, vertical, cells) = process_blocks(&decoded_data);
 
-                            println!("\nBlocs décodés :");
-                            println!("[{}] Passages horizontaux : {:?}", player_name, horizontal);
-                            println!("[{}] Passages verticaux : {:?}", player_name, vertical);
-                            println!("[{}] Cellules : {:?}", player_name, cells);
+                                println!("\nBlocs décodés :");
+                                println!("[{}] Passages horizontaux : {:?}", player_name, horizontal);
+                                println!("[{}] Passages verticaux : {:?}", player_name, vertical);
+                                println!("[{}] Cellules : {:?}", player_name, cells);
 
-                            display_radar_view(&horizontal, &vertical, &cells);
+                                display_radar_view(&horizontal, &vertical, &cells);
 
-                            // decide du mouvement
-                            let radar_data = vec![horizontal.clone(), vertical.clone()];
-                            let direction = tremaux_decide_move(
-                                &mut player_state,
-                                &radar_data,
-                                &cells,
-                                player_name,
-                            );
-                            println!("[{}] Decided to move: {}", player_name, direction);
-                            // Update de la position du joueur c'est pour tremaux
-                            move_player(&mut player_state, direction);
+                                let radar_data = vec![horizontal.clone(), vertical.clone()];
+                                let direction = tremaux_decide_move(
+                                    &mut player_state,
+                                    &radar_data,
+                                    &cells,
+                                    player_name,
+                                );
+                                println!("[{}] Decided to move: {}", player_name, direction);
+                                move_player(&mut player_state, direction);
 
-                            send_move_action(stream, direction, player_name).unwrap_or_else(|e| {
-                                eprintln!("[{}] Failed to send move action: {}", player_name, e);
-                            });
-                        }
-                        Err(err) => {
-                            eprintln!("[{}] Failed to decode RadarView: {}", player_name, err)
+                                if let Err(e) = send_move_action(stream, direction, player_name) {
+                                    eprintln!("[{}] Failed to send move action: {}", player_name, e);
+                                }
+                            }
+                            Err(err) => {
+                                eprintln!("[{}] Failed to decode RadarView: {}", player_name, err);
+                            }
                         }
                     }
                 }
 
                 if let Some(hint) = msg.get("Hint") {
                     if let Some(secret) = hint.get("Secret") {
-                        let secret_value = secret.as_u64().unwrap_or(0);
-                        println!("[{}] Received secret: {}", player_name, secret_value);
-
-                        // met à jour le secret dans l'état global partagé
-                        {
-                            let mut secrets = game_state.secrets.lock().unwrap();
-                            secrets.insert(player_name.to_string(), secret_value);
-                        }
-                        {
-                            let secrets = game_state.secrets.lock().unwrap();
-                            println!("Current known secrets: {:?}", secrets);
+                        if let Some(secret_value) = secret.as_u64() {
+                            println!("[{}] Received secret: {}", player_name, secret_value);
+                            if let Ok(mut secrets) = game_state.secrets.lock() {
+                                secrets.insert(player_name.to_string(), secret_value);
+                            } else {
+                                eprintln!("[{}] Failed to lock secrets mutex", player_name);
+                            }
                         }
                     }
                 }
 
                 if let Some(challenge) = msg.get("Challenge") {
                     if let Some(modulo) = challenge.get("SecretSumModulo") {
-                        let modulo_value = modulo.as_u64().unwrap_or(1);
-                        println!(
-                            "[{}] SecretSumModulo challenge received with modulo {}",
-                            player_name, modulo_value
-                        );
+                        if let Some(modulo_value) = modulo.as_u64() {
+                            println!(
+                                "[{}] SecretSumModulo challenge received with modulo {}",
+                                player_name, modulo_value
+                            );
 
-                        handle_secret_sum_modulo(stream, player_name, &game_state, modulo_value);
+                            handle_secret_sum_modulo(stream, player_name, &game_state, modulo_value);
+                        }
                     }
                 }
             }

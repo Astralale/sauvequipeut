@@ -7,7 +7,7 @@ use crate::game::start_game_loop;
 
 pub fn reconnect(server_address: &str) -> Result<TcpStream, String> {
     println!("Reconnecting to server...");
-    TcpStream::connect(server_address).map_err(|e| e.to_string())
+    TcpStream::connect(server_address).map_err(|e| format!("Failed to reconnect: {}", e))
 }
 
 pub fn start_player_threads(server_address: &str, registration_token: String, expected_players: u8) {

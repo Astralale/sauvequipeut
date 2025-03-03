@@ -37,12 +37,19 @@ pub fn decode_b64(encoded: &str) -> Result<String, String> {
         .chunks(8)
         .filter_map(|chunk| {
             if chunk.len() == 8 {
-                Some(u8::from_str_radix(&String::from_utf8_lossy(chunk), 2).unwrap())
+                match u8::from_str_radix(&String::from_utf8_lossy(chunk), 2) {
+                    Ok(byte) => Some(byte),
+                    Err(e) => {
+                        eprintln!("[DEBUG] Erreur de conversion des bits en u8 : {}", e);
+                        None
+                    }
+                }
             } else {
                 None
             }
         })
         .collect();
+
 
     let decoded = bytes
         .iter()

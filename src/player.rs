@@ -252,7 +252,8 @@ pub fn subscribe_player(
         }
     });
 
-    let serialized_message = serde_json::to_string(&message).unwrap();
+    let serialized_message = serde_json::to_string(&message)
+        .map_err(|e| format!("Failed to serialize message: {}", e))?;
     let message_length = serialized_message.len() as u32;
 
     let mut buffer = vec![];
@@ -526,25 +527,38 @@ pub fn tremaux_decide_move(
                 "{} -> {:?} (visites: {})",
                 dir,
                 pos,
-                player_state.visited.get(pos).unwrap_or(&0)
+                match player_state.visited.get(pos) {
+                    Some(visits) => visits,
+                    None => {
+                        eprintln!("[DEBUG] Pas de visites enregistrées pour la position {:?}", pos);
+                        &0
+                    }
+                }
             ))
             .collect::<Vec<_>>()
     );
 
-    // **Prioriser la position avec le moins de visites**
     if let Some((best_move, _)) = moves
         .iter()
-        .min_by_key(|(_, pos)| player_state.visited.get(pos).cloned().unwrap_or(0))
+        .min_by_key(|(_, pos)| match player_state.visited.get(pos) {
+            Some(visits) => *visits,
+            None => {
+                eprintln!("[DEBUG] Pas de visites enregistrées pour la position {:?}", pos);
+                0
+            }
+        })
     {
         player_state.last_direction = Some(*best_move);
         return best_move;
     }
 
-    //  Si aucune option viable, revenir en arrière**
-    let last_option = moves
-        .first()
-        .map(|(direction, _)| *direction)
-        .unwrap_or("Back");
+    let last_option = match moves.first() {
+        Some((direction, _)) => *direction,
+        None => {
+            eprintln!("[DEBUG] Aucun mouvement viable, retour par défaut à Back");
+            "Back"
+        }
+    };
     player_state.last_direction = Some(last_option);
 
     println!(
@@ -630,7 +644,13 @@ fn wall_follower_decide_move(
     let mut min_visits = u8::MAX;
 
     for (direction, new_pos) in &moves {
-        let visits = player_state.visited.get(new_pos).copied().unwrap_or(0);
+        let visits = match player_state.visited.get(new_pos) {
+            Some(&v) => v,
+            None => {
+                eprintln!("[DEBUG] Pas de visites enregistrées pour la position {:?}", new_pos);
+                0
+            }
+        };
         if visits == 0 {
             return direction; // On prend direct une nouvelle case si elle existe !
         }
@@ -641,7 +661,14 @@ fn wall_follower_decide_move(
     }
 
     // Retourne le mouvement le moins visité ou recule sinon
-    best_move.unwrap_or(&"Back")
+    return match best_move {
+        Some(direction) => direction,
+        None => {
+            eprintln!("[DEBUG] Aucun mouvement optimal trouvé, retour par défaut à Back");
+            "Back"
+        }
+    };
+
 }
 
 pub fn handle_secret_sum_modulo(
@@ -652,7 +679,13 @@ pub fn handle_secret_sum_modulo(
 ) {
     // On verrouille le mutex UNE SEULE FOIS et on stocke les valeurs localement
     let known_secrets: Vec<u128> = {
-        let secrets = game_state.secrets.lock().unwrap(); // On récupère TOUS les secrets de l'équipe
+        let secrets = match game_state.secrets.lock() {
+            Ok(secrets) => secrets,
+            Err(e) => {
+                eprintln!("[DEBUG] Échec du verrouillage du mutex des secrets : {}", e);
+                return;
+            }
+        };
         secrets.values().map(|&v| v as u128).collect()
     };
 
@@ -679,7 +712,13 @@ pub fn handle_secret_sum_modulo(
         }
     });
 
-    let serialized_response = serde_json::to_string(&response).unwrap();
+    let serialized_response = match serde_json::to_string(&response) {
+        Ok(res) => res,
+        Err(e) => {
+            eprintln!("[DEBUG] Échec de la sérialisation de la réponse : {}", e);
+            return;
+        }
+    };
     let message_length = serialized_response.len() as u32;
 
     let mut buffer = vec![];
