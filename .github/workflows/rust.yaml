@@ -1,0 +1,92 @@
+name: Rust CI/CD
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  check:
+    name: Vérification du code
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        task: [ fmt, clippy, doc ]
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Installer Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Vérifier le formatage
+        if: matrix.task == 'fmt'
+        run: cargo fmt --all -- --check
+
+      - name: Vérifier les erreurs
+        if: matrix.task == 'clippy'
+        run: cargo clippy -- -D warnings
+
+      - name: Vérifier la documentation
+        if: matrix.task == 'doc'
+        run: RUSTDOCFLAGS="-Dwarnings" cargo doc --no-deps
+
+  test:
+    name: Exécution des tests
+    runs-on: ubuntu-latest
+    needs: check
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Installer Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Exécuter les tests
+        run: cargo test --verbose -- --nocapture
+
+  build:
+    name: Compilation et publication
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Installer Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Compiler le projet en release
+        run: cargo build --release
+
+      - name: Publier le binaire
+        uses: actions/upload-artifact@v4
+        with:
+          name: binary
+          path: target/release/
+
+  release:
+    name: Publication d'une release
+    runs-on: ubuntu-latest
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Installer Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Compiler le binaire
+        run: cargo build --release
+
+      - name: Créer une release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: target/release/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
