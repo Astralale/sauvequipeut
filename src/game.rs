@@ -63,19 +63,11 @@ pub fn start_game_loop(
 
                                 display_radar_view(&horizontal, &vertical, &cells);
 
-                                let direction;
-                                if config.navigation_mode=="random" {
-                                    direction = random_decide_move(
-                                        &cells,
-                                        player_name,
-                                    );
-                                } else {
-                                    direction = tremaux_decide_move(
-                                        &mut player_state,
-                                        &cells,
-                                        player_name,
-                                    );
-                                }
+                                let direction = match config.navigation_mode.as_str() {
+                                    "random" => random_decide_move(&cells, player_name),
+                                    _ => tremaux_decide_move(&mut player_state, &cells, player_name),
+                                };
+
 
                                 println!("[{}] Decided to move: {}", player_name, direction);
                                 move_player(&mut player_state, direction, &movement_logger);

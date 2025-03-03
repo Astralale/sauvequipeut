@@ -678,9 +678,9 @@ pub fn random_decide_move(
     let mut rng = rng();
     let mut moves = vec![];
 
-    let front_cell = cells.get(0).and_then(|row| row.chars().nth(1));
+    let front_cell = cells.first().and_then(|row| row.chars().nth(1));
     let back_cell = cells.get(2).and_then(|row| row.chars().nth(1));
-    let left_cell = cells.get(1).and_then(|row| row.chars().nth(0));
+    let left_cell = cells.get(1).and_then(|row| row.chars().next());
     let right_cell = cells.get(1).and_then(|row| row.chars().nth(2));
 
     if front_cell == Some('8') || front_cell == Some('9') {
