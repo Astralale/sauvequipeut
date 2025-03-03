@@ -1,10 +1,9 @@
-use crate::player::{display_radar_view, handle_secret_sum_modulo, move_player, process_blocks, send_move_action, tremaux_decide_move, MovementLog, Orientation, PlayerState, Position, SavedState};
+use crate::player::{display_radar_view, handle_secret_sum_modulo, move_player, process_blocks, send_move_action, tremaux_decide_move, MovementLog, Orientation, PlayerState, Position};
 use crate::utils::decode_b64;
 use std::collections::HashMap;
 use std::io::Read;
 use std::net::TcpStream;
 use std::sync::{Arc, Mutex};
-use crate::config::Config;
 
 pub struct GameState {
     pub secrets: Mutex<HashMap<String, u64>>, // Stocke les secrets des joueurs
@@ -14,7 +13,6 @@ pub fn start_game_loop(
     stream: &mut TcpStream,
     player_name: &str,
     game_state: Arc<GameState>,
-    config: Arc<Config>,
 ) {
     let mut player_state = PlayerState {
         position: Position::new(0, 0),

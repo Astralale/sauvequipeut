@@ -1,7 +1,7 @@
 use crate::game::GameState;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::io::{Read, Write, self, Error};
+use std::io::{Read, Write, Error};
 use std::net::TcpStream;
 use std::sync::Arc;
 use std::fs::{File, OpenOptions};
@@ -98,7 +98,7 @@ impl PlayerState {
     ///
     /// * `Position` - La nouvelle position après le déplacement.
     pub fn compute_new_position(&self, movement: &str) -> Position {
-        let mut new_pos = self.position.clone();
+        let mut new_pos = self.position;
 
         match movement {
             "Front" => match self.orientation {
@@ -187,7 +187,7 @@ pub enum SubscribePlayerResult {
 }
 
 pub fn move_player(player_state: &mut PlayerState, movement: &str, logger: &MovementLog) {
-    let mut new_pos = player_state.position.clone();
+    let mut new_pos = player_state.position;
 
     match movement {
         "Front" => match player_state.orientation {
@@ -242,9 +242,9 @@ pub fn move_player(player_state: &mut PlayerState, movement: &str, logger: &Move
         _ => (),
     }
 
-    player_state.position = new_pos.clone();
+    player_state.position = new_pos;
 
-    let visit_count = player_state.visited.entry(new_pos.clone()).or_insert(0);
+    let visit_count = player_state.visited.entry(new_pos).or_insert(0);
     if *visit_count < u8::MAX {
          *visit_count = visit_count.saturating_add(1);
     }
@@ -491,10 +491,10 @@ pub fn tremaux_decide_move(
     cells: &[String],
     player_name: &str,
 ) -> &'static str {
-    let current_pos = player_state.position.clone();
+    let current_pos = player_state.position;
 
     // Mise à jour du compteur de visites
-    let visit_count = player_state.visited.entry(current_pos.clone()).or_insert(0);
+    let visit_count = player_state.visited.entry(current_pos).or_insert(0);
     if *visit_count < u8::MAX {
         *visit_count = visit_count.saturating_add(1);
     }

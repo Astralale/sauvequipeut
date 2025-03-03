@@ -1,18 +1,14 @@
-use crate::game::start_game_loop;
-use crate::{game, player};
 use std::collections::HashMap;
 use std::net::TcpStream;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use crate::{game, player};
 use crate::game::start_game_loop;
-use crate::config::Config;
 
 pub fn start_player_threads(
     server_address: &str,
     registration_token: String,
-    expected_players: u8,
-    config: Arc<Config>,
+    expected_players: u8
 ) {
     let mut handles = vec![];
     let game_state = Arc::new(game::GameState {
@@ -26,7 +22,6 @@ pub fn start_player_threads(
 
         let handle = thread::spawn({
             let game_state = game_state.clone();
-            let config = config.clone();
             move || {
                 println!("Thread started for {}", player_name);
 
@@ -44,7 +39,7 @@ pub fn start_player_threads(
                 }
 
                 println!("Player {} registered successfully!", player_name);
-                start_game_loop(&mut stream, &player_name, game_state, config);
+                start_game_loop(&mut stream, &player_name, game_state);
             }
         });
 

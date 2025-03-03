@@ -65,7 +65,7 @@ fn main() -> Result<(), String> {
                 expected_players, registration_token
             );
 
-            start_player_threads(server_address, registration_token, expected_players,  Arc::clone(&config));
+            start_player_threads(server_address, registration_token, expected_players);
         }
         player::RegisterTeamResult::Err(err) => {
             eprintln!("Failed to register team: {}", err);
