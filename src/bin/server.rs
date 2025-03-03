@@ -1,6 +1,7 @@
+use sauvequipeut::player;
+use sauvequipeut::player::RegisterTeamBody;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
-use sauvequipeut::player;
 
 fn main() {
     let listener = match TcpListener::bind("127.0.0.1:8778") {
@@ -49,6 +50,7 @@ fn handle_client(mut stream: TcpStream) {
 
     let mut writing_buffer = vec![];
 
+    //Client Team response
     if received == get_expected_step(1) {
         writing_buffer.extend((get_response(1).len() as u32).to_le_bytes());
         writing_buffer.extend(get_response(1).as_bytes());
@@ -60,6 +62,7 @@ fn handle_client(mut stream: TcpStream) {
         }
     }
 
+    //Client Player response
     if received == get_expected_step(2) {
         writing_buffer.extend((get_response(2).len() as u32).to_le_bytes());
         writing_buffer.extend(get_response(2).as_bytes());
@@ -103,7 +106,7 @@ fn get_expected_step(iteration: u8) -> String {
         1 => match serde_json::to_string(&player::RegisterTeam {
             RegisterTeam: player::RegisterTeamBody {
                 name: "team_example".to_string(),
-            }
+            },
         }) {
             Ok(res) => res,
             Err(e) => {
@@ -115,7 +118,7 @@ fn get_expected_step(iteration: u8) -> String {
             SubscribePlayer: player::SubscribePlayerBody {
                 name: "player_1".to_string(),
                 registration_token: "abcd1234".to_string(),
-            }
+            },
         }) {
             Ok(res) => res,
             Err(e) => {
@@ -130,17 +133,21 @@ fn get_expected_step(iteration: u8) -> String {
 
 fn get_response(iteration: u8) -> String {
     match iteration {
-        1 => match serde_json::to_string(&serde_json::json!({"RegisterTeamResult": player::RegisterTeamResult::Ok {
-            expected_players: 1,
-            registration_token: "abcd1234".to_string(),
-        }})) {
+        1 => match serde_json::to_string(
+            &serde_json::json!({"RegisterTeamResult": player::RegisterTeamResult::Ok {
+                expected_players: 1,
+                registration_token: "abcd1234".to_string(),
+            }}),
+        ) {
             Ok(res) => res,
             Err(e) => {
                 eprintln!("Erreur de sérialisation de RegisterTeamResult : {}", e);
                 String::new()
             }
         },
-        2 => match serde_json::to_string(&serde_json::json!({"SubscribePlayerResult": player::SubscribePlayerResult::Ok {}})) {
+        2 => match serde_json::to_string(
+            &serde_json::json!({"SubscribePlayerResult": player::SubscribePlayerResult::Ok {}}),
+        ) {
             Ok(res) => res,
             Err(e) => {
                 eprintln!("Erreur de sérialisation de SubscribePlayerResult : {}", e);

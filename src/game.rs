@@ -1,9 +1,10 @@
+use crate::player::{display_radar_view, handle_secret_sum_modulo, move_player, process_blocks, send_move_action, tremaux_decide_move, MovementLog, Orientation, PlayerState, Position, SavedState};
+use crate::utils::decode_b64;
 use std::collections::HashMap;
 use std::io::Read;
 use std::net::TcpStream;
 use std::sync::{Arc, Mutex};
-use crate::player::{display_radar_view, handle_secret_sum_modulo, move_player, process_blocks, send_move_action, tremaux_decide_move, Orientation, PlayerState, Position};
-use crate::utils::decode_b64;
+use crate::config::Config;
 
 pub struct GameState {
     pub secrets: Mutex<HashMap<String, u64>>, // Stocke les secrets des joueurs
@@ -13,6 +14,7 @@ pub fn start_game_loop(
     stream: &mut TcpStream,
     player_name: &str,
     game_state: Arc<GameState>,
+    config: Arc<Config>,
 ) {
     let mut player_state = PlayerState {
         position: Position::new(0, 0),
@@ -20,6 +22,12 @@ pub fn start_game_loop(
         last_direction: None, // Nouvelle initialisation
         orientation: Orientation::North,
     };
+    let movement_logger = MovementLog {
+        player_name: player_name.to_string(),
+    };
+    if let Err(e) = movement_logger.reset_log() {
+        eprintln!("[{}] Erreur lors de la réinitialisation du log : {}", player_name, e);
+    }
     loop {
         println!("[{}] Waiting for message...", player_name);
 
@@ -61,7 +69,7 @@ pub fn start_game_loop(
                                     player_name,
                                 );
                                 println!("[{}] Decided to move: {}", player_name, direction);
-                                move_player(&mut player_state, direction);
+                                move_player(&mut player_state, direction, &movement_logger);
 
                                 if let Err(e) = send_move_action(stream, direction, player_name) {
                                     eprintln!("[{}] Failed to send move action: {}", player_name, e);

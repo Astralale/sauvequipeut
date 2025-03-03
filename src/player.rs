@@ -1,16 +1,20 @@
+use crate::game::GameState;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::io::{Read, Write};
+use std::io::{Read, Write, self, Error};
 use std::net::TcpStream;
 use std::sync::Arc;
-use crate::game::GameState;
+use std::fs::{File, OpenOptions};
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Position {
     x: i32,
     y: i32,
 }
-
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SavedState {
+    pub position: Position,
+}
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Orientation {
     North,
@@ -31,6 +35,42 @@ impl Position {
         Self { x, y }
     }
 }
+/// Structure pour stocker l'historique des déplacements d'un joueur.
+pub struct MovementLog {
+    pub player_name: String,
+}
+
+impl MovementLog {
+    /// Initialise le fichier de log en le vidant au début de chaque partie.
+    pub fn reset_log(&self) -> Result<(), Error> {
+        let filename = format!("{}_movements.log", self.player_name);
+        File::create(filename)?; // Crée un fichier vide (écrase l'ancien)
+        Ok(())
+    }
+
+    /// Enregistre un mouvement dans le fichier de log du joueur.
+    ///
+    /// # Arguments
+    ///
+    /// * `position` - La position actuelle du joueur après son déplacement.
+    /// * `movement` - Le mouvement effectué ("Front", "Back", etc.).
+    pub fn log_movement(&self, position: &Position, movement: &str) {
+        let filename = format!("{}_movements.log", self.player_name);
+
+        let mut file = OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&filename)
+            .expect("Erreur lors de l'ouverture du fichier de log");
+
+        writeln!(
+            file,
+            "Position: ({}, {}), Mouvement: {}",
+            position.x, position.y, movement
+        )
+            .expect("Erreur lors de l'écriture du log");
+    }
+}
 
 impl PartialEq for Position {
     fn eq(&self, other: &Self) -> bool {
@@ -48,6 +88,15 @@ impl std::hash::Hash for Position {
 }
 
 impl PlayerState {
+    /// Calcule la nouvelle position du joueur en fonction du mouvement spécifié.
+    ///
+    /// # Arguments
+    ///
+    /// * `movement` - Une chaîne représentant le mouvement à effectuer ("Front", "Back", "Left", "Right").
+    ///
+    /// # Retourne
+    ///
+    /// * `Position` - La nouvelle position après le déplacement.
     pub fn compute_new_position(&self, movement: &str) -> Position {
         let mut new_pos = self.position.clone();
 
@@ -137,7 +186,7 @@ pub enum SubscribePlayerResult {
     Err(String),
 }
 
-pub fn move_player(player_state: &mut PlayerState, movement: &str) {
+pub fn move_player(player_state: &mut PlayerState, movement: &str, logger: &MovementLog) {
     let mut new_pos = player_state.position.clone();
 
     match movement {
@@ -204,6 +253,9 @@ pub fn move_player(player_state: &mut PlayerState, movement: &str) {
         "[DEBUG] Nouvelle position: {:?}, Visites: {}",
         player_state.position, visit_count
     );
+
+    logger.log_movement(&player_state.position, movement);
+
 }
 
 pub fn subscribe_player(
@@ -384,6 +436,17 @@ pub fn display_radar_view(horizontal: &[String], vertical: &[String], cells: &[S
     }
 }
 
+/// Envoie une action de déplacement au serveur.
+///
+/// # Arguments
+///
+/// * `stream` - Une référence mutable vers le flux TCP.
+/// * `direction` - La direction du déplacement ("Front", "Back", "Left", "Right").
+/// * `player_name` - Le nom du joueur effectuant l'action.
+///
+/// # Retourne
+///
+/// * `Result<(), String>` - Un `Ok(())` si l'action est envoyée avec succès, sinon une `Err` avec un message d'erreur.
 pub fn send_move_action(
     stream: &mut TcpStream,
     direction: &str,
@@ -411,7 +474,18 @@ pub fn send_move_action(
     println!("[{}] Move action sent: {}", player_name, direction);
     Ok(())
 }
-
+/// Détermine le prochain mouvement du joueur en fonction de l'algorithme de Trémaux.
+///
+/// # Arguments
+///
+/// * `player_state` - État du joueur, contenant sa position et son historique de visites.
+/// * `radar_data` - Données du radar indiquant les murs et les passages.
+/// * `cells` - Informations sur les cellules adjacentes.
+/// * `player_name` - Nom du joueur.
+///
+/// # Retourne
+///
+/// * Une `&'static str` indiquant la direction du mouvement ("Front", "Back", "Left", "Right").
 pub fn tremaux_decide_move(
     player_state: &mut PlayerState,
     cells: &[String],
@@ -500,6 +574,7 @@ pub fn tremaux_decide_move(
             .collect::<Vec<_>>()
     );
 
+    // **Prioriser la position avec le moins de visites**
     if let Some((best_move, _)) = moves
         .iter()
         .min_by_key(|(_, pos)| match player_state.visited.get(pos) {
