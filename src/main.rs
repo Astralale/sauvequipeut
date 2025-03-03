@@ -2,17 +2,22 @@ mod client;
 mod game;
 mod player;
 mod utils;
-mod tests;
+mod config;
 
-use crate::client::start_player_threads;
 use std::io::{Read, Write};
 use std::net::TcpStream;
+use std::sync::Arc;
+use crate::client::start_player_threads;
+use crate::config::Config;
 
 fn main() -> Result<(), String> {
-    let server_address = "127.0.0.1:8778";
-    let team_name = "team_example";
-    println!("Connecting to server at {}...", server_address);
+    let config = Arc::new(Config::load().expect("Erreur chargement config"));
+    println!("Configuration chargée: {:?}", config);
 
+    let server_address = &config.server_address;
+    let team_name = &config.team_name;
+
+    println!("Connecting to server at {}...", server_address);
     let mut stream =
         TcpStream::connect(server_address).map_err(|e| format!("Failed to connect: {}", e))?;
     println!("Connected to server!");
@@ -60,7 +65,7 @@ fn main() -> Result<(), String> {
                 expected_players, registration_token
             );
 
-            start_player_threads(server_address, registration_token, expected_players);
+            start_player_threads(server_address, registration_token, expected_players,  Arc::clone(&config));
         }
         player::RegisterTeamResult::Err(err) => {
             println!("Failed to register team: {}", err);

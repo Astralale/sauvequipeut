@@ -1,16 +1,20 @@
 use crate::game::GameState;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::io::{Read, Write};
+use std::io::{Read, Write, self, Error};
 use std::net::TcpStream;
 use std::sync::Arc;
+use std::fs::{File, OpenOptions};
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Position {
     x: i32,
     y: i32,
 }
-
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SavedState {
+    pub position: Position,
+}
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Orientation {
     North,
@@ -31,7 +35,42 @@ impl Position {
         Self { x, y }
     }
 }
+/// Structure pour stocker l'historique des déplacements d'un joueur.
+pub struct MovementLog {
+    pub player_name: String,
+}
 
+impl MovementLog {
+    /// Initialise le fichier de log en le vidant au début de chaque partie.
+    pub fn reset_log(&self) -> Result<(), Error> {
+        let filename = format!("{}_movements.log", self.player_name);
+        File::create(filename)?; // Crée un fichier vide (écrase l'ancien)
+        Ok(())
+    }
+
+    /// Enregistre un mouvement dans le fichier de log du joueur.
+    ///
+    /// # Arguments
+    ///
+    /// * `position` - La position actuelle du joueur après son déplacement.
+    /// * `movement` - Le mouvement effectué ("Front", "Back", etc.).
+    pub fn log_movement(&self, position: &Position, movement: &str) {
+        let filename = format!("{}_movements.log", self.player_name);
+
+        let mut file = OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&filename)
+            .expect("Erreur lors de l'ouverture du fichier de log");
+
+        writeln!(
+            file,
+            "Position: ({}, {}), Mouvement: {}",
+            position.x, position.y, movement
+        )
+            .expect("Erreur lors de l'écriture du log");
+    }
+}
 impl PartialEq for Position {
     fn eq(&self, other: &Self) -> bool {
         self.x == other.x && self.y == other.y
@@ -185,7 +224,7 @@ pub struct DecodedRadarView {
     cells: Vec<u8>,
 }
 
-pub fn move_player(player_state: &mut PlayerState, movement: &str) {
+pub fn move_player(player_state: &mut PlayerState, movement: &str, logger: &MovementLog) {
     let mut new_pos = player_state.position.clone();
 
     match movement {
@@ -252,6 +291,9 @@ pub fn move_player(player_state: &mut PlayerState, movement: &str) {
         "[DEBUG] Nouvelle position: {:?}, Visites: {}",
         player_state.position, visit_count
     );
+
+    logger.log_movement(&player_state.position, movement);
+
 }
 
 pub fn subscribe_player(
@@ -678,6 +720,7 @@ fn wall_follower_decide_move(
     // Retourne le mouvement le moins visité ou recule sinon
     best_move.unwrap_or(&"Back")
 }
+
 /// Calcule et envoie la réponse au défi `SecretSumModulo`.
 ///
 /// # Arguments

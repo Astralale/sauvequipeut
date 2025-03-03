@@ -1,0 +1,4 @@
+server_address = "127.0.0.1:8778"
+team_name = "team_example"
+navigation_mode = "tremaux"
+save_progress = true

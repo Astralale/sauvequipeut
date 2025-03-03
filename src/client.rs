@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::net::TcpStream;
 use std::sync::{Arc, Mutex};
 use std::thread;
+use crate::config::Config;
 
 pub fn reconnect(server_address: &str) -> Result<TcpStream, String> {
     println!("Reconnecting to server...");
@@ -14,6 +15,7 @@ pub fn start_player_threads(
     server_address: &str,
     registration_token: String,
     expected_players: u8,
+    config: Arc<Config>,
 ) {
     let mut handles = vec![];
     let game_state = Arc::new(game::GameState {
@@ -27,6 +29,7 @@ pub fn start_player_threads(
 
         let handle = thread::spawn({
             let game_state = game_state.clone();
+            let config = config.clone();
             move || {
                 println!("Thread started for {}", player_name);
 
@@ -51,7 +54,7 @@ pub fn start_player_threads(
                 }
 
                 println!("Player {} registered successfully!", player_name);
-                start_game_loop(&mut stream, &player_name, &mut player_state, game_state);
+                start_game_loop(&mut stream, &player_name, &mut player_state, game_state, config);
             }
         });
 
