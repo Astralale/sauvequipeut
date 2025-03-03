@@ -1,9 +1,9 @@
+use crate::game::GameState;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::sync::Arc;
-use crate::game::GameState;
 
 #[derive(Clone, Debug)]
 pub struct Position {
@@ -48,6 +48,15 @@ impl std::hash::Hash for Position {
 }
 
 impl PlayerState {
+    /// Calcule la nouvelle position du joueur en fonction du mouvement spécifié.
+    ///
+    /// # Arguments
+    ///
+    /// * `movement` - Une chaîne représentant le mouvement à effectuer ("Front", "Back", "Left", "Right").
+    ///
+    /// # Retourne
+    ///
+    /// * `Position` - La nouvelle position après le déplacement.
     pub fn compute_new_position(&self, movement: &str) -> Position {
         let mut new_pos = self.position.clone();
 
@@ -82,6 +91,11 @@ impl PlayerState {
         new_pos
     }
 
+    /// Met à jour l'orientation du joueur après un mouvement spécifique.
+    ///
+    /// # Arguments
+    ///
+    /// * `movement` - Une chaîne représentant le mouvement effectué ("Left", "Right", "Back").
     pub fn update_orientation(&mut self, movement: &str) {
         match movement {
             "Left" => {
@@ -417,6 +431,17 @@ pub fn display_radar_view(horizontal: &[String], vertical: &[String], cells: &[S
     }
 }
 
+/// Envoie une action de déplacement au serveur.
+///
+/// # Arguments
+///
+/// * `stream` - Une référence mutable vers le flux TCP.
+/// * `direction` - La direction du déplacement ("Front", "Back", "Left", "Right").
+/// * `player_name` - Le nom du joueur effectuant l'action.
+///
+/// # Retourne
+///
+/// * `Result<(), String>` - Un `Ok(())` si l'action est envoyée avec succès, sinon une `Err` avec un message d'erreur.
 pub fn send_move_action(
     stream: &mut TcpStream,
     direction: &str,
@@ -444,7 +469,18 @@ pub fn send_move_action(
     println!("[{}] Move action sent: {}", player_name, direction);
     Ok(())
 }
-
+/// Détermine le prochain mouvement du joueur en fonction de l'algorithme de Trémaux.
+///
+/// # Arguments
+///
+/// * `player_state` - État du joueur, contenant sa position et son historique de visites.
+/// * `radar_data` - Données du radar indiquant les murs et les passages.
+/// * `cells` - Informations sur les cellules adjacentes.
+/// * `player_name` - Nom du joueur.
+///
+/// # Retourne
+///
+/// * Une `&'static str` indiquant la direction du mouvement ("Front", "Back", "Left", "Right").
 pub fn tremaux_decide_move(
     player_state: &mut PlayerState,
     radar_data: &[Vec<String>],
@@ -554,7 +590,6 @@ pub fn tremaux_decide_move(
     last_option
 }
 
-
 fn wall_follower_decide_move(
     player_state: &mut PlayerState,
     radar_data: &[Vec<String>],
@@ -643,7 +678,20 @@ fn wall_follower_decide_move(
     // Retourne le mouvement le moins visité ou recule sinon
     best_move.unwrap_or(&"Back")
 }
-
+/// Calcule et envoie la réponse au défi `SecretSumModulo`.
+///
+/// # Arguments
+///
+/// * `stream` - Une référence mutable vers le flux TCP.
+/// * `player_name` - Le nom du joueur.
+/// * `game_state` - L'état global du jeu, contenant les secrets des joueurs.
+/// * `modulo` - La valeur du modulo à appliquer.
+///
+/// # Comportement
+///
+/// * Additionne tous les secrets des joueurs.
+/// * Applique un modulo pour éviter les dépassements.
+/// * Envoie la réponse au serveur.
 pub fn handle_secret_sum_modulo(
     stream: &mut TcpStream,
     player_name: &str,

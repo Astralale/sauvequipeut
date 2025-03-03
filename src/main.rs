@@ -2,10 +2,11 @@ mod client;
 mod game;
 mod player;
 mod utils;
+mod tests;
 
+use crate::client::start_player_threads;
 use std::io::{Read, Write};
 use std::net::TcpStream;
-use crate::client::start_player_threads;
 
 fn main() -> Result<(), String> {
     let server_address = "127.0.0.1:8778";

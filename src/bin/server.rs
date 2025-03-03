@@ -1,7 +1,7 @@
-use std::io::{Read, Write};
-use std::net::{TcpListener, TcpStream};
 use sauvequipeut::player;
 use sauvequipeut::player::RegisterTeamBody;
+use std::io::{Read, Write};
+use std::net::{TcpListener, TcpStream};
 
 fn main() {
     // Écoute sur le port 3000
@@ -58,7 +58,6 @@ fn handle_client(mut stream: TcpStream) {
         println!("Reçu `{}`, réponse `{}`", received, get_response(3));
         stream.write_all(&writing_buffer).unwrap();
 
-
         let mut size_buffer = [0_u8; 4];
         stream.read_exact(&mut size_buffer).unwrap();
         let message_size = u32::from_le_bytes(size_buffer) as usize;
@@ -68,8 +67,6 @@ fn handle_client(mut stream: TcpStream) {
         let received = String::from_utf8_lossy(&buffer).trim().to_string();
         println!("Reçu `{}`", received);
     }
-
-
 }
 
 fn get_expected_step(iteration: u8) -> String {
@@ -78,19 +75,19 @@ fn get_expected_step(iteration: u8) -> String {
             let register_team = player::RegisterTeam {
                 RegisterTeam: player::RegisterTeamBody {
                     name: "team_example".to_string(),
-                }
+                },
             };
             serde_json::to_string(&register_team).unwrap()
-        },
+        }
         2 => {
             let subscribe_player = player::SubscribePlayer {
                 SubscribePlayer: player::SubscribePlayerBody {
                     name: "player_1".to_string(),
                     registration_token: "abcd1234".to_string(),
-                }
+                },
             };
             serde_json::to_string(&subscribe_player).unwrap()
-        },
+        }
         3 => String::from("radar1"),
         _ => String::from(""),
     }
@@ -103,15 +100,17 @@ fn get_response(iteration: u8) -> String {
                 expected_players: 1,
                 registration_token: "abcd1234".to_string(),
             };
-            serde_json::to_string(&serde_json::json!({"RegisterTeamResult": register_team_result})).unwrap()
-        },
+            serde_json::to_string(&serde_json::json!({"RegisterTeamResult": register_team_result}))
+                .unwrap()
+        }
         2 => {
             let subscribe_player_result = player::SubscribePlayerResult::Ok {};
-            serde_json::to_string(&serde_json::json!({"SubscribePlayerResult": subscribe_player_result})).unwrap()
-        },
-        3 => {
-            serde_json::to_string(&serde_json::json!({"RadarView": "zveKvsuL8a8aaaa"})).unwrap()
-        },
+            serde_json::to_string(
+                &serde_json::json!({"SubscribePlayerResult": subscribe_player_result}),
+            )
+            .unwrap()
+        }
+        3 => serde_json::to_string(&serde_json::json!({"RadarView": "zveKvsuL8a8aaaa"})).unwrap(),
         _ => String::from(""),
     }
 }

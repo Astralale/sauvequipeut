@@ -1,16 +1,20 @@
+use crate::game::start_game_loop;
+use crate::{game, player};
 use std::collections::HashMap;
 use std::net::TcpStream;
 use std::sync::{Arc, Mutex};
 use std::thread;
-use crate::{game, player};
-use crate::game::start_game_loop;
 
 pub fn reconnect(server_address: &str) -> Result<TcpStream, String> {
     println!("Reconnecting to server...");
     TcpStream::connect(server_address).map_err(|e| e.to_string())
 }
 
-pub fn start_player_threads(server_address: &str, registration_token: String, expected_players: u8) {
+pub fn start_player_threads(
+    server_address: &str,
+    registration_token: String,
+    expected_players: u8,
+) {
     let mut handles = vec![];
     let game_state = Arc::new(game::GameState {
         secrets: Mutex::new(HashMap::new()),
