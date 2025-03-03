@@ -3,12 +3,15 @@ use serde::{Deserialize, Serialize};
 // Types pour les messages serveur
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "PascalCase")]
+#[allow(non_snake_case)]
+#[allow(clippy::upper_case_acronyms)]
 pub enum ServerMessage {
     RadarView { RadarView: String },
     Challenge { Challenge: ChallengeType },
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[allow(clippy::upper_case_acronyms)]
 pub enum ChallengeType {
     SecretSumModulo(u64),
     SOS,

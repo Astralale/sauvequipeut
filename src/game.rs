@@ -12,7 +12,6 @@ pub struct GameState {
 pub fn start_game_loop(
     stream: &mut TcpStream,
     player_name: &str,
-    player_state: &mut PlayerState,
     game_state: Arc<GameState>,
 ) {
     let mut player_state = PlayerState {
@@ -56,10 +55,8 @@ pub fn start_game_loop(
 
                                 display_radar_view(&horizontal, &vertical, &cells);
 
-                                let radar_data = vec![horizontal.clone(), vertical.clone()];
                                 let direction = tremaux_decide_move(
                                     &mut player_state,
-                                    &radar_data,
                                     &cells,
                                     player_name,
                                 );

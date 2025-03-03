@@ -108,7 +108,7 @@ fn get_expected_step(iteration: u8) -> String {
             Ok(res) => res,
             Err(e) => {
                 eprintln!("Erreur de sérialisation de RegisterTeam : {}", e);
-                return String::new();
+                String::new()
             }
         },
         2 => match serde_json::to_string(&player::SubscribePlayer {
@@ -120,7 +120,7 @@ fn get_expected_step(iteration: u8) -> String {
             Ok(res) => res,
             Err(e) => {
                 eprintln!("Erreur de sérialisation de SubscribePlayer : {}", e);
-                return String::new();
+                String::new()
             }
         },
         3 => String::from("radar1"),
@@ -137,21 +137,21 @@ fn get_response(iteration: u8) -> String {
             Ok(res) => res,
             Err(e) => {
                 eprintln!("Erreur de sérialisation de RegisterTeamResult : {}", e);
-                return String::new();
+                String::new()
             }
         },
         2 => match serde_json::to_string(&serde_json::json!({"SubscribePlayerResult": player::SubscribePlayerResult::Ok {}})) {
             Ok(res) => res,
             Err(e) => {
                 eprintln!("Erreur de sérialisation de SubscribePlayerResult : {}", e);
-                return String::new();
+                String::new()
             }
         },
         3 => match serde_json::to_string(&serde_json::json!({"RadarView": "zveKvsuL8a8aaaa"})) {
             Ok(res) => res,
             Err(e) => {
                 eprintln!("Erreur de sérialisation de RadarView : {}", e);
-                return String::new();
+                String::new()
             }
         },
         _ => String::new(),

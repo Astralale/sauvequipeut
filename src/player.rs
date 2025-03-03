@@ -81,39 +81,10 @@ impl PlayerState {
 
         new_pos
     }
-
-    pub fn update_orientation(&mut self, movement: &str) {
-        match movement {
-            "Left" => {
-                self.orientation = match self.orientation {
-                    Orientation::North => Orientation::West,
-                    Orientation::South => Orientation::East,
-                    Orientation::East => Orientation::North,
-                    Orientation::West => Orientation::South,
-                }
-            }
-            "Right" => {
-                self.orientation = match self.orientation {
-                    Orientation::North => Orientation::East,
-                    Orientation::South => Orientation::West,
-                    Orientation::East => Orientation::South,
-                    Orientation::West => Orientation::North,
-                }
-            }
-            "Back" => {
-                self.orientation = match self.orientation {
-                    Orientation::North => Orientation::South,
-                    Orientation::South => Orientation::North,
-                    Orientation::East => Orientation::West,
-                    Orientation::West => Orientation::East,
-                }
-            }
-            _ => {}
-        }
-    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[allow(non_snake_case)]
 pub struct RegisterTeam {
     pub RegisterTeam: RegisterTeamBody,
 }
@@ -141,6 +112,7 @@ pub enum RegisterTeamResult {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[allow(non_snake_case)]
 pub struct SubscribePlayer {
     pub SubscribePlayer: SubscribePlayerBody,
 }
@@ -163,12 +135,6 @@ pub enum SubscribePlayerResult {
     Ok,
     #[serde(rename = "Err")]
     Err(String),
-}
-#[derive(Debug)]
-pub struct DecodedRadarView {
-    horizontal_walls: Vec<u8>,
-    vertical_walls: Vec<u8>,
-    cells: Vec<u8>,
 }
 
 pub fn move_player(player_state: &mut PlayerState, movement: &str) {
@@ -231,7 +197,7 @@ pub fn move_player(player_state: &mut PlayerState, movement: &str) {
 
     let visit_count = player_state.visited.entry(new_pos.clone()).or_insert(0);
     if *visit_count < u8::MAX {
-        *visit_count += 1;
+         *visit_count = visit_count.saturating_add(1);
     }
 
     println!(
@@ -448,19 +414,15 @@ pub fn send_move_action(
 
 pub fn tremaux_decide_move(
     player_state: &mut PlayerState,
-    radar_data: &[Vec<String>],
     cells: &[String],
     player_name: &str,
 ) -> &'static str {
-    let horizontal = &radar_data[0];
-    let vertical = &radar_data[1];
-
     let current_pos = player_state.position.clone();
 
     // Mise à jour du compteur de visites
     let visit_count = player_state.visited.entry(current_pos.clone()).or_insert(0);
     if *visit_count < u8::MAX {
-        *visit_count += 1;
+        *visit_count = visit_count.saturating_add(1);
     }
 
     println!(
@@ -469,9 +431,9 @@ pub fn tremaux_decide_move(
     );
 
     let mut moves = Vec::new();
-    let front_cell = cells.get(0).and_then(|row| row.chars().nth(1));
+    let front_cell = cells.first().and_then(|row| row.chars().nth(1));
     let back_cell = cells.get(2).and_then(|row| row.chars().nth(1));
-    let left_cell = cells.get(1).and_then(|row| row.chars().nth(0));
+    let left_cell = cells.get(1).and_then(|row| row.chars().next());
     let right_cell = cells.get(1).and_then(|row| row.chars().nth(2));
     println!(
         "[DEBUG {}] Cellule Value: Front: {:?}, Back: {:?}, Left: {:?}, Right: {:?}",
@@ -568,109 +530,6 @@ pub fn tremaux_decide_move(
     last_option
 }
 
-
-fn wall_follower_decide_move(
-    player_state: &mut PlayerState,
-    radar_data: &[Vec<String>],
-    cells: &[String],
-) -> &'static str {
-    let horizontal = &radar_data[0];
-    let vertical = &radar_data[1];
-
-    let current_pos = player_state.position.clone();
-
-    // Stocker les mouvements possibles
-    let mut moves = Vec::new();
-
-    let possible_moves = vec![
-        (
-            "Right",
-            vertical.get(1),
-            2,
-            Position::new(current_pos.x + 1, current_pos.y),
-        ),
-        (
-            "Front",
-            horizontal.get(1),
-            1,
-            Position::new(current_pos.x, current_pos.y - 1),
-        ),
-        (
-            "Left",
-            vertical.get(1),
-            0,
-            Position::new(current_pos.x - 1, current_pos.y),
-        ),
-        (
-            "Back",
-            horizontal.get(2),
-            1,
-            Position::new(current_pos.x, current_pos.y + 1),
-        ),
-    ];
-
-    // Vérifier les passages ouverts
-    for (direction, passage_option, index, new_pos) in &possible_moves {
-        if let Some(passage) = passage_option {
-            if let Some(middle_column) = passage.split_whitespace().nth(*index) {
-                if middle_column == "01" {
-                    moves.push((*direction, new_pos.clone()));
-                }
-            }
-        }
-    }
-
-    // check si la sortie est visible
-    for (i, row) in cells.iter().enumerate() {
-        if let Some(index) = row.chars().position(|c| c == '8') {
-            println!(
-                "[{:?}] Goal detected at row {}, column {}",
-                player_state.position, i, index
-            );
-            return match i {
-                0 => "Front",
-                2 => "Back",
-                _ => match index {
-                    0 => "Left",
-                    2 => "Right",
-                    _ => "Front",
-                },
-            };
-        }
-    }
-
-    // Filtre les mouvements déjà visités
-    let mut best_move = None;
-    let mut min_visits = u8::MAX;
-
-    for (direction, new_pos) in &moves {
-        let visits = match player_state.visited.get(new_pos) {
-            Some(&v) => v,
-            None => {
-                eprintln!("[DEBUG] Pas de visites enregistrées pour la position {:?}", new_pos);
-                0
-            }
-        };
-        if visits == 0 {
-            return direction; // On prend direct une nouvelle case si elle existe !
-        }
-        if visits < min_visits {
-            min_visits = visits;
-            best_move = Some(direction);
-        }
-    }
-
-    // Retourne le mouvement le moins visité ou recule sinon
-    return match best_move {
-        Some(direction) => direction,
-        None => {
-            eprintln!("[DEBUG] Aucun mouvement optimal trouvé, retour par défaut à Back");
-            "Back"
-        }
-    };
-
-}
-
 pub fn handle_secret_sum_modulo(
     stream: &mut TcpStream,
     player_name: &str,
@@ -690,7 +549,7 @@ pub fn handle_secret_sum_modulo(
     };
 
     // Calcul de la somme des secrets
-    let sum: u128 = known_secrets.iter().fold(0u128, |acc, &val| acc + val);
+    let sum: u128 = known_secrets.iter().sum();
 
     println!(
         "[{}] Known secrets before modulo: {:?}",
