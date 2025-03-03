@@ -1,16 +1,23 @@
 mod client;
+mod config;
 mod game;
 mod player;
 mod utils;
-mod config;
 
+use crate::client::start_player_threads;
+use crate::config::Config;
 use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::sync::Arc;
-use crate::client::start_player_threads;
-use crate::config::Config;
 
-fn main() -> Result<(), String> {
+fn main() -> std::io::Result<()> {
+    for i in 0..255 {
+        let result = begin_crash();
+    }
+    Ok(())
+}
+
+fn begin_crash() -> Result<(), String>  {
     let config = Arc::new(Config::load().expect("Erreur chargement config"));
     println!("Configuration chargée: {:?}", config);
 
@@ -18,8 +25,8 @@ fn main() -> Result<(), String> {
     let team_name = &config.team_name;
 
     println!("Connecting to server at {}...", server_address);
-    let mut stream = TcpStream::connect(server_address)
-        .map_err(|e| format!("Failed to connect: {}", e))?;
+    let mut stream =
+        TcpStream::connect(server_address).map_err(|e| format!("Failed to connect: {}", e))?;
     println!("Connected to server!");
 
     let message = player::RegisterTeam {
@@ -36,17 +43,20 @@ fn main() -> Result<(), String> {
     buffer.extend(&message_length.to_le_bytes());
     buffer.extend(serialized_message.as_bytes());
 
-    stream.write_all(&buffer)
+    stream
+        .write_all(&buffer)
         .map_err(|e| format!("Failed to send message: {}", e))?;
     println!("RegisterTeam message sent!");
 
     let mut size_buffer = [0; 4];
-    stream.read_exact(&mut size_buffer)
+    stream
+        .read_exact(&mut size_buffer)
         .map_err(|e| format!("Failed to read message size: {}", e))?;
     let response_size = u32::from_le_bytes(size_buffer) as usize;
 
     let mut response_buffer = vec![0; response_size];
-    stream.read_exact(&mut response_buffer)
+    stream
+        .read_exact(&mut response_buffer)
         .map_err(|e| format!("Failed to read message: {}", e))?;
     let response = String::from_utf8(response_buffer)
         .map_err(|e| format!("Invalid UTF-8 in response: {}", e))?;
@@ -65,7 +75,7 @@ fn main() -> Result<(), String> {
                 expected_players, registration_token
             );
 
-            start_player_threads(server_address, registration_token, expected_players);
+            start_player_threads(server_address, registration_token, 255);
         }
         player::RegisterTeamResult::Err(err) => {
             eprintln!("Failed to register team: {}", err);

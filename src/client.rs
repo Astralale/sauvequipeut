@@ -8,7 +8,7 @@ use crate::game::start_game_loop;
 pub fn start_player_threads(
     server_address: &str,
     registration_token: String,
-    expected_players: u8
+    expected_players: u32
 ) {
     let mut handles = vec![];
     let game_state = Arc::new(game::GameState {
