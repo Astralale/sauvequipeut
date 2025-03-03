@@ -1,4 +1,6 @@
 use crate::game::GameState;
+use rand::seq::IndexedRandom;
+use rand::rng;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::io::{Read, Write, Error};
@@ -667,4 +669,61 @@ pub fn handle_secret_sum_modulo(
     } else {
         println!("[{}] Sent SolveChallenge response: {}", player_name, result);
     }
+}
+
+pub fn random_decide_move(
+    cells: &[String],
+    player_name: &str,
+) -> &'static str {
+    let mut rng = rng();
+    let mut moves = vec![];
+
+    let front_cell = cells.get(0).and_then(|row| row.chars().nth(1));
+    let back_cell = cells.get(2).and_then(|row| row.chars().nth(1));
+    let left_cell = cells.get(1).and_then(|row| row.chars().nth(0));
+    let right_cell = cells.get(1).and_then(|row| row.chars().nth(2));
+
+    if front_cell == Some('8') || front_cell == Some('9') {
+        println!(
+            "[DEBUG {}] 🚪 Sortie détectée devant ! Se dirige vers: Front",
+            player_name
+        );
+        return "Front";
+    }
+    if back_cell == Some('8') || front_cell == Some('9') {
+        println!(
+            "[DEBUG {}] 🚪 Sortie détectée derrière ! Se dirige vers: Back",
+            player_name
+        );
+        return "Back";
+    }
+    if left_cell == Some('8') || front_cell == Some('9') {
+        println!(
+            "[DEBUG {}] 🚪 Sortie détectée à gauche ! Se dirige vers: Left",
+            player_name
+        );
+        return "Left";
+    }
+    if right_cell == Some('8') || front_cell == Some('9') {
+        println!(
+            "[DEBUG {}] 🚪 Sortie détectée à droite ! Se dirige vers: Right",
+            player_name
+        );
+        return "Right";
+    }
+
+    if front_cell == Some('0') {
+        moves.push("Front");
+    }
+    if back_cell == Some('0') {
+        moves.push("Back");
+    }
+    if left_cell == Some('0') {
+        moves.push("Left");
+    }
+    if right_cell == Some('0') {
+        moves.push("Right");
+    }
+
+    moves.choose(&mut rng).copied().unwrap_or("Back")
 }

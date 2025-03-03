@@ -1,9 +1,10 @@
-use crate::player::{display_radar_view, handle_secret_sum_modulo, move_player, process_blocks, send_move_action, tremaux_decide_move, MovementLog, Orientation, PlayerState, Position};
+use crate::player::{display_radar_view, handle_secret_sum_modulo, move_player, process_blocks, random_decide_move, send_move_action, tremaux_decide_move, MovementLog, Orientation, PlayerState, Position};
 use crate::utils::decode_b64;
 use std::collections::HashMap;
 use std::io::Read;
 use std::net::TcpStream;
 use std::sync::{Arc, Mutex};
+use crate::config::Config;
 
 pub struct GameState {
     pub secrets: Mutex<HashMap<String, u64>>, // Stocke les secrets des joueurs
@@ -14,6 +15,7 @@ pub fn start_game_loop(
     player_name: &str,
     game_state: Arc<GameState>,
 ) {
+    let config = Arc::new(Config::load().expect("Erreur chargement config"));
     let mut player_state = PlayerState {
         position: Position::new(0, 0),
         visited: HashMap::new(),
@@ -61,11 +63,20 @@ pub fn start_game_loop(
 
                                 display_radar_view(&horizontal, &vertical, &cells);
 
-                                let direction = tremaux_decide_move(
-                                    &mut player_state,
-                                    &cells,
-                                    player_name,
-                                );
+                                let direction;
+                                if config.navigation_mode=="random" {
+                                    direction = random_decide_move(
+                                        &cells,
+                                        player_name,
+                                    );
+                                } else {
+                                    direction = tremaux_decide_move(
+                                        &mut player_state,
+                                        &cells,
+                                        player_name,
+                                    );
+                                }
+
                                 println!("[{}] Decided to move: {}", player_name, direction);
                                 move_player(&mut player_state, direction, &movement_logger);
 
