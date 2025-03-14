@@ -381,7 +381,7 @@ pub fn display_radar_view(horizontal: &[String], vertical: &[String], cells: &[S
                     "01" => print!("• "), // Open
                     "10" => print!("•━"), // Wall
                     _ => print!("  "),
-                }
+                } 
                 previous_passage = Some(passage);
             }
             println!("#");
@@ -515,28 +515,28 @@ pub fn tremaux_decide_move(
         "[DEBUG {}] Cellule Value: Front: {:?}, Back: {:?}, Left: {:?}, Right: {:?}",
         player_name, front_cell, back_cell, left_cell, right_cell
     );
-    if front_cell == Some('8') || front_cell == Some('9') {
+    if front_cell == Some('8') || front_cell == Some('9') || front_cell == Some('A') {
         println!(
             "[DEBUG {}] 🚪 Sortie détectée devant ! Se dirige vers: Front",
             player_name
         );
         return "Front";
     }
-    if back_cell == Some('8') || front_cell == Some('9') {
+    if back_cell == Some('8') || front_cell == Some('9') || front_cell == Some('A'){
         println!(
             "[DEBUG {}] 🚪 Sortie détectée derrière ! Se dirige vers: Back",
             player_name
         );
         return "Back";
     }
-    if left_cell == Some('8') || front_cell == Some('9') {
+    if left_cell == Some('8') || front_cell == Some('9') || front_cell == Some('A'){
         println!(
             "[DEBUG {}] 🚪 Sortie détectée à gauche ! Se dirige vers: Left",
             player_name
         );
         return "Left";
     }
-    if right_cell == Some('8') || front_cell == Some('9') {
+    if right_cell == Some('8') || front_cell == Some('9') || front_cell == Some('A'){
         println!(
             "[DEBUG {}] 🚪 Sortie détectée à droite ! Se dirige vers: Right",
             player_name
